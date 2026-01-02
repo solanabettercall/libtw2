@@ -292,14 +292,14 @@ impl Callback<Addr> for Socket {
                 AddressFamilyNotSupported(()),
             ));
         }
-        non_block(socket.send_to(data, &sock_addr))
-            .unwrap_or_else(|| {
-                Err(io::Error::new(
-                    io::ErrorKind::WouldBlock,
-                    "write would block",
-                ))
-            })
-            .map(|s| assert!(data.len() == s))
+        match socket.send_to(data, &sock_addr) {
+            Ok(s) => {
+                assert!(data.len() == s);
+                Ok(())
+            }
+            Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => Ok(()),
+            Err(e) => Err(e),
+        }
         // TODO: Check for these errors and decide what to do with them
         // EHOSTUNREACH
         // ENETDOWN
